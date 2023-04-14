@@ -1,12 +1,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <limits.h>
 
 #define MAX_LEN 64
+#define MAX_FILE_NAME_LEN 32
+#define MAX_PATH_LEN 56
+
 // predefined functions
 char** parse(char* input);
 void print_matrix(char** matrix, int len);
+void ls(char** args, int position);
 
 
 
@@ -23,9 +30,15 @@ void run_shell()
         args = parse(input);
 
 
+        if(strcmp(args[0], "ls") == 0)
+        {
+            ls(args, 0);
+        }
 
     }
 }
+
+
 
 char** parse(char* input)
 {
@@ -49,10 +62,10 @@ char** parse(char* input)
     int count_words = count+1;
     int required_space = count_words+1;
 
-    char response[required_space][56];
+    char response[required_space][MAX_PATH_LEN];
     int i_save = 0;
     int len = strlen(input);
-    char acum[64] = "";
+    char acum[MAX_LEN] = "";
     last_space = true;
 
     for(int i=0; i < len -1; i++)
@@ -65,7 +78,7 @@ char** parse(char* input)
             if(!last_space)
             {
                 strcpy(response[i_save], acum);
-                memset(acum, 0, 64); // clean string
+                memset(acum, 0, MAX_LEN); // clean string
                 i_save+=1;
             }
             last_space=true;
@@ -87,7 +100,7 @@ char** parse(char* input)
     char** parsed_response = malloc(count_words * sizeof(char*));
     for (int i = 0; i < count_words; i++)
     {
-        parsed_response[i] = malloc(56 * sizeof(char));
+        parsed_response[i] = malloc(MAX_PATH_LEN * sizeof(char));
         strcpy(parsed_response[i], response[i]);
     }
     parsed_response[count_words] = NULL;
@@ -95,7 +108,6 @@ char** parse(char* input)
     // print_matrix(parsed_response, required_space);
     return parsed_response;
 }
-
 
 
 void print_matrix(char** matrix, int len)
@@ -114,6 +126,55 @@ void print_matrix(char** matrix, int len)
     }
     printf("~~~~ End ~~~~\n");
 }
+
+
+// ~~~~ LS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void ls(char** args, int position)
+{
+    // printf("ls in\n");
+
+    char cwd[MAX_PATH_LEN];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) 
+    {
+        printf("Directorio: %s\n", cwd);
+
+        // create DIR object
+        DIR *d;
+        struct dirent *dir_ent;
+
+        d = opendir(cwd);
+
+        if(d == NULL) printf("error: Cannot open directory '%s'\n", cwd);
+
+        // Gets the max len of files names
+        // int max = 0;
+        // while((dir_ent = readdir(d)) != NULL)
+        // {
+        //     int current = (int)strlen(dir_ent->d_name);
+        //     if(current > max) max = current;
+        // }
+
+        // Print all files
+        // int col = 0;
+        // int line = 0;
+        while((dir_ent = readdir(d)) != NULL)
+        {
+            if(dir_ent->d_name[0] == '.') continue; // ignore dot start files
+            printf("%s\n", dir_ent->d_name);
+        }
+
+        closedir(d);
+    }
+    else {
+        perror("error: Cannot access to current dir\n");
+    }
+    // printf("end ls function\n");
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 int main(void) {
     run_shell();
