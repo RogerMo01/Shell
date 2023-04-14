@@ -14,12 +14,13 @@ void run_shell()
 {
     char input[MAX_LEN];
     int status;
+    char** args;
 
     while (true)
     {
         printf("my-prompt $ ");
         fgets(input, MAX_LEN, stdin);
-        char** parsed_input = parse(input);
+        args = parse(input);
 
 
 
@@ -46,9 +47,9 @@ char** parse(char* input)
         else last_space = false;
     }
     int count_words = count+1;
+    int required_space = count_words+1;
 
-
-    char response[count_words][56];
+    char response[required_space][56];
     int i_save = 0;
     int len = strlen(input);
     char acum[64] = "";
@@ -89,8 +90,9 @@ char** parse(char* input)
         parsed_response[i] = malloc(56 * sizeof(char));
         strcpy(parsed_response[i], response[i]);
     }
+    parsed_response[count_words] = NULL;
 
-    // print_matrix(parsed_response, count_words);
+    // print_matrix(parsed_response, required_space);
     return parsed_response;
 }
 
