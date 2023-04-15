@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <limits.h>
+#include <sys/wait.h>
 
 #define MAX_LEN 64
 #define MAX_FILE_NAME_LEN 32
@@ -35,12 +36,32 @@ void run_shell()
         if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("error: Cannot access to current dir\n"); 
 
 
-        if(strcmp(args[0], "ls") == 0){
-            ls(args, 0, currentPath);
-        } else if(strcmp(args[0], "pwd") == 0){
+        if(strcmp(args[0], "pwd") == 0){
             printf("%s\n", currentPath);
         }
+        else
+        {
+            __pid_t pid = fork(); // crear un proceso hijo
+            if (pid == 0) 
+            { // si el proceso es el hijo
+                if (strcmp(args[0], "ls") == 0) { // comprobar si el usuario ingresó "ls"
+                    execvp("./bin/ls", args); // ejecutar el comando ls con los argumentos proporcionados
+                    printf("Error: Comando no encontrado.\n"); // si el comando falla, imprime un mensaje de error
+                    exit(1);
+                } else {
+                    execvp(args[0], args); // ejecutar el comando con los argumentos proporcionados
+                    printf("Error: Comando no encontrado.\n"); // si el comando falla, imprime un mensaje de error
+                    exit(1);
+                }
+            } 
+            else 
+            { // si el proceso es el padre
+                wait(NULL); // esperar a que el hijo termine
+            }
+        }
+        
 
+        
     }
 }
 
@@ -133,59 +154,6 @@ void print_matrix(char** matrix, int len)
     printf("~~~~ End ~~~~\n");
 }
 
-
-// ~~~~ LS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void ls(char** args, int position, char* currentPath)
-{
-    // create DIR object
-    DIR *d;
-    struct dirent *dir_ent;
-
-    d = opendir(currentPath);
-
-    if(d == NULL) printf("error: Cannot open directory '%s'\n", currentPath);
-
-    // Gets the max len of files names
-    int largest = 0;
-    while((dir_ent = readdir(d)) != NULL)
-    {
-        if(dir_ent->d_name[0] == '.') continue; // ignore dot start files
-        int current = (int)strlen(dir_ent->d_name);
-        if(current > largest) largest = current;
-    }
-    closedir(d);
-    d = opendir(currentPath);
-    
-
-    // Print all files
-    int lineMaxLen = 100;
-    int countInLine = lineMaxLen/(largest+2);
-    int countInCol = 0;
-
-    while((dir_ent = readdir(d)) != NULL)
-    {
-        if(dir_ent->d_name[0] == '.') continue; // ignore dot start files
-        
-        if(countInCol == countInLine)
-        {
-            printf("\n");
-            countInCol = 0;
-        }
-
-        int currentLen = (int)strlen(dir_ent->d_name);
-        int r = largest+2-currentLen;
-        // print dirname
-        printf("%s", dir_ent->d_name);
-        // print r spaces
-        for (int i = 0; i < r; i++) printf(" ");
-
-        countInCol++;
-    }
-    printf("\n");
-
-    closedir(d);
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 int main(void) {
