@@ -28,38 +28,49 @@ void run_shell()
 
     while (true)
     {
-        printf("my-prompt $ ");
+        printf("\x1B[33m" "our-prompt $ " "\x1B[0m");
         fgets(input, MAX_LEN, stdin);
         args = parse(input);
 
         // Set current directory
-        if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("error: Cannot access to current dir\n"); 
+        if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("Error: Cannot access to current dir\n"); 
 
 
         if(strcmp(args[0], "pwd") == 0){
             printf("%s\n", currentPath);
         }
+        else if(strcmp(args[0], "cd") == 0)
+        {
+            if(args[1] == NULL){
+                printf("Error: You must provide a directory to change to.\n");
+            }
+            else{
+                if(chdir(args[1]) != 0){
+                    perror("Error: Cannot change to this directory");
+                }
+            }
+        }
         else
         {
-            __pid_t pid = fork(); // crear un proceso hijo
-            if (pid == 0) 
-            { // si el proceso es el hijo
-                if (strcmp(args[0], "ls") == 0) { // comprobar si el usuario ingresó "ls"
-                    execvp("./bin/ls", args); // ejecutar el comando ls con los argumentos proporcionados
-                    printf("Error: Comando no encontrado.\n"); // si el comando falla, imprime un mensaje de error
+            __pid_t pid = fork();
+
+            if (pid == 0) //child process
+            { 
+                if (strcmp(args[0], "ls") == 0) { 
+                    execvp("ls", args);
+                    printf("Error: Comando no encontrado.\n"); 
                     exit(1);
                 } else {
-                    execvp(args[0], args); // ejecutar el comando con los argumentos proporcionados
-                    printf("Error: Comando no encontrado.\n"); // si el comando falla, imprime un mensaje de error
+                    execvp(args[0], args);
+                    printf("Error: Comando no encontrado.\n");
                     exit(1);
                 }
             } 
-            else 
-            { // si el proceso es el padre
-                wait(NULL); // esperar a que el hijo termine
+            else //parent process
+            {
+                wait(NULL);
             }
         }
-        
 
         
     }
