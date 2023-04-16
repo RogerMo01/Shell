@@ -94,8 +94,11 @@ char** parse(char* input)
                 count++;
             }
             last_space = true;
+
+            if(i>0 && input[i-1]=='\\' ) count--;
         }
         else last_space = false;
+
     }
     int count_words = count+1;
     int required_space = count_words+1;
@@ -105,13 +108,19 @@ char** parse(char* input)
     int len = strlen(input);
     char acum[MAX_LEN] = "";
     last_space = true;
+    int includeSpace = false;
 
     for(int i=0; i < len -1; i++)
     {
         // printf("i = %i\n", i);
         // printf("input = %c\n", input[i]);
         
-        if(input[i] == ' ')
+        if(input[i] == '\\') continue;
+        if(i > 0 && input[i-1] == '\\')
+        {
+            includeSpace = true;
+        }
+        if(input[i] == ' ' && !includeSpace)
         {
             if(!last_space)
             {
@@ -127,6 +136,7 @@ char** parse(char* input)
             char* t = tmp;
             strcat(acum, t);
             last_space = false;
+            includeSpace = false;
 
             if(i == len-2)
             {
