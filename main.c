@@ -56,15 +56,9 @@ void run_shell()
 
             if (pid == 0) //child process
             { 
-                if (strcmp(args[0], "ls") == 0) { 
-                    execvp("ls", args);
-                    printf("Error: Comando no encontrado.\n"); 
-                    exit(1);
-                } else {
-                    execvp(args[0], args);
-                    printf("Error: Comando no encontrado.\n");
-                    exit(1);
-                }
+                execvp(args[0], args);
+                printf("Error: Comando no encontrado.\n");
+                exit(1);
             } 
             else //parent process
             {
