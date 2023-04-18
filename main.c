@@ -47,8 +47,11 @@ void run_shell()
         // Set current directory
         if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("Error: Cannot access to current dir\n"); 
 
-
-        if(strcmp(args[0], "cd") == 0)
+        if(strcmp(args[0], "exit") == 0)
+        {
+            exit(0);
+        }
+        else if(strcmp(args[0], "cd") == 0)
         {
             if(args[1] == NULL){
                 printf("Error: You must provide a directory to change to.\n");
