@@ -17,7 +17,7 @@ char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
-void Executer(char** args);
+void Executer(char** args, int cmd_i);
 
 
 void run_shell() 
@@ -102,7 +102,7 @@ void run_shell()
 
 
                 // Execute command
-                Executer(args);
+                Executer(args, 0);
                 printf("Error: Comando no encontrado.\n");
                 exit(1);
             } 
@@ -140,17 +140,17 @@ void RedirectOutput(char** args, int rdOut)
     close(out_fd);
 }
 
-void Executer(char** args)
+void Executer(char** args, int cmd_i)
 {
-    if(strcmp(args[0], "pwd") == 0)
+    if(strcmp(args[cmd_i], "pwd") == 0)
     {
         execvp("./bin/pwd", args);
     }
-    else if(strcmp(args[0], "ls") == 0)
+    else if(strcmp(args[cmd_i], "ls") == 0)
     {
         execvp("./bin/ls", args);
     }
-    else if(strcmp(args[0], "echo") == 0)
+    else if(strcmp(args[cmd_i], "echo") == 0)
     {
         execv("./bin/echo", args);
     }
