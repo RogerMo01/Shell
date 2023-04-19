@@ -15,6 +15,8 @@
 // Predefined functions
 char** parse(char* input);
 void print_matrix(char** matrix, int len);
+void RedirectInput(char** args, int rdIn1_i);
+void RedirectOutput(char** args, int rdOut1_i);
 
 
 void run_shell() 
@@ -91,27 +93,11 @@ void run_shell()
             { 
                 // Redirect Input Case
                 if(rdIn1_i > 0 && pipe_i == -1)
-                {
-                    int in_fd = open(args[rdIn1_i+1], O_RDONLY);
-                    if(in_fd == -1) { perror("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
-
-                    int dup2i = dup2(in_fd, 0);
-                    if(dup2i == -1) { perror("Error: Cannot change stdIn\n"); exit(EXIT_FAILURE); }
-
-                    close(in_fd);
-                }
+                { RedirectInput(args, rdIn1_i); }
 
                 // Redirect Output Cases
                 if(rdOut1_i > 0)
-                {
-                    int index = rdOut1_i+1;
-                    int out_fd = (strcmp(args[rdOut1_i], ">>") == 0) ? open(args[index], O_WRONLY | O_CREAT | O_APPEND, 0644) : open(args[index], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    
-                    int dup2o = dup2(out_fd, 1);
-                    if(dup2o == -1) { perror("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
-
-                    close(out_fd);
-                }
+                { RedirectOutput(args, rdOut1_i); }
 
 
 
@@ -144,6 +130,30 @@ void run_shell()
 
         
     }//while true
+}
+
+
+
+void RedirectInput(char** args, int rdIn)
+{
+    int in_fd = open(args[rdIn+1], O_RDONLY);
+    if(in_fd == -1) { perror("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
+
+    int dup2i = dup2(in_fd, 0);
+    if(dup2i == -1) { perror("Error: Cannot change stdIn\n"); exit(EXIT_FAILURE); }
+
+    close(in_fd);
+}
+
+void RedirectOutput(char** args, int rdOut)
+{
+    int index = rdOut+1;
+    int out_fd = (strcmp(args[rdOut], ">>") == 0) ? open(args[index], O_WRONLY | O_CREAT | O_APPEND, 0644) : open(args[index], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    
+    int dup2o = dup2(out_fd, 1);
+    if(dup2o == -1) { perror("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
+
+    close(out_fd);
 }
 
 
