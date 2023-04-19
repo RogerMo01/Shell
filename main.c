@@ -32,17 +32,35 @@ void run_shell()
         args = parse(input);
 
         // In-Out redirectors positions
-        int rdIn = -1;
-        int rdOut = -1;
+        int rdIn1_i = -1;
+        int rdOut1_i = -1;
+
+        // Pipe operators
+        int pipe_i = -1;
+        int rdOut2_i = -1;
 
         // Detect redirectors
         int i = 0;
         while (args[i] != NULL)
         {
-            if(strcmp(args[i], ">") == 0 || strcmp(args[i], ">>") == 0) rdOut = i;
-            if(strcmp(args[i], "<") == 0) rdIn =  i;
+            if(pipe_i == -1)
+            {
+                if(strcmp(args[i], ">") == 0 || strcmp(args[i], ">>") == 0) rdOut1_i = i;
+                if(strcmp(args[i], "<") == 0) rdIn1_i =  i;
+            }
+            else
+            {
+                if(strcmp(args[i], ">") == 0 || strcmp(args[i], ">>") == 0) rdOut2_i = i;
+            }
+            
+            if(strcmp(args[i], "|") == 0) pipe_i = i;
             i++;
         }
+
+        printf("rdIn1_i = %i\n", rdIn1_i);
+        printf("rdOut1_i = %i\n", rdOut1_i);
+        printf("rdOut2_i = %i\n", rdOut2_i);
+        printf("pipe_i = %i\n", pipe_i);
 
         // Set current directory
         if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("Error: Cannot access to current dir\n"); 
@@ -64,6 +82,7 @@ void run_shell()
         }
         else
         {
+            
             // Create process
             __pid_t pid = fork();
             if(pid == -1) perror("Error: Cannot fork the process\n");
@@ -71,9 +90,9 @@ void run_shell()
             if (pid == 0) //child process
             { 
                 // Redirect Input Case
-                if(rdIn > 0)
+                if(rdIn1_i > 0 && pipe_i == -1)
                 {
-                    int in_fd = open(args[rdIn+1], O_RDONLY);
+                    int in_fd = open(args[rdIn1_i+1], O_RDONLY);
                     if(in_fd == -1) { perror("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
 
                     int dup2i = dup2(in_fd, 0);
@@ -83,10 +102,10 @@ void run_shell()
                 }
 
                 // Redirect Output Cases
-                if(rdOut > 0)
+                if(rdOut1_i > 0)
                 {
-                    int index = rdOut+1;
-                    int out_fd = (strcmp(args[rdOut], ">>") == 0) ? open(args[index], O_WRONLY | O_CREAT | O_APPEND, 0644) : open(args[index], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    int index = rdOut1_i+1;
+                    int out_fd = (strcmp(args[rdOut1_i], ">>") == 0) ? open(args[index], O_WRONLY | O_CREAT | O_APPEND, 0644) : open(args[index], O_WRONLY | O_CREAT | O_TRUNC, 0644);
                     
                     int dup2o = dup2(out_fd, 1);
                     if(dup2o == -1) { perror("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
@@ -105,12 +124,17 @@ void run_shell()
                 {
                     execvp("./bin/ls", args);
                 }
+                else if(strcmp(args[0], "echo") == 0)
+                {
+                    printf("identific'o echo\n");
+                    execv("./bin/echo", args);
+                }
                 else
                 {
                     printf("Error: Comando no encontrado.\n");
                     exit(1);
                 }
-                
+
             } 
             else //parent process
             {
