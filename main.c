@@ -10,14 +10,16 @@
 
 #define MAX_LEN 64
 #define MAX_FILE_NAME_LEN 32
-#define MAX_PATH_LEN 56
+#define MAX_PATH_ARG 56
+#define MAX_PATH_LEN 128
+#define MAX_EXE_NAME 15
 
 // Predefined functions
 char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
-void ExecuteCommand(char** args, int cmd_i);
+void ExecuteCommand(char** args, int cmd_i, char* runningDir);
 
 
 void run_shell() 
@@ -25,7 +27,9 @@ void run_shell()
     char input[MAX_LEN];
     int status;
     char** args;
-    char currentPath[MAX_PATH_LEN];
+    char currentPath[MAX_PATH_ARG];
+    char runningDir[128];
+    getcwd(runningDir, sizeof(runningDir));
 
 
     while (true)
@@ -103,7 +107,7 @@ void run_shell()
                     { RedirectOutput(args, rdOut1_i); }
 
                     // Execute command
-                    ExecuteCommand(args, 0);
+                    ExecuteCommand(args, 0, runningDir);
                     printf("Error: Comando no encontrado.\n");
                     exit(EXIT_FAILURE);
                 } 
@@ -115,7 +119,7 @@ void run_shell()
                 {
                     close(pipe_fd[0]);
                     dup2(pipe_fd[1], STDOUT_FILENO);
-                    ExecuteCommand(args, 0);
+                    ExecuteCommand(args, 0, runningDir);
                     perror("Error: child process\n");
                     exit(EXIT_FAILURE);
                 }
@@ -126,7 +130,7 @@ void run_shell()
                     close(pipe_fd[1]);
                     dup2(pipe_fd[0], STDIN_FILENO);
 
-                    ExecuteCommand(args, pipe_i + 1);
+                    ExecuteCommand(args, pipe_i + 1, runningDir);
                     perror("Error: child process 2\n");
                     exit(EXIT_FAILURE);
                 }
@@ -168,23 +172,32 @@ void RedirectOutput(char** args, int rdOut)
     close(out_fd);
 }
 
-void ExecuteCommand(char** args, int cmd_i)
+void ExecuteCommand(char** args, int cmd_i, char* runningDir)
 {
+    // Set executable path
+    char exeDir[sizeof(runningDir)+5+MAX_EXE_NAME]; // 5 characters of "/bin/" and 15 of executable name
+    strcpy(exeDir, runningDir);
+    strcat(exeDir, "/bin/");
+
     if(strcmp(args[cmd_i], "pwd") == 0)
     {
-        execvp("./bin/pwd", args);
+        strcat(exeDir, "pwd");
+        execvp(exeDir, args);
     }
     else if(strcmp(args[cmd_i], "ls") == 0)
     {
-        execvp("./bin/ls", args);
+        strcat(exeDir, "ls");
+        execvp(exeDir, args);
     }
     else if(strcmp(args[cmd_i], "echo") == 0)
     {
-        execv("./bin/echo", args);
+        strcat(exeDir, "echo");
+        execv(exeDir, args);
     }
     else if(strcmp(args[cmd_i], "reverse") == 0)
     {
-        execv("./bin/reverse", args);
+        strcat(exeDir, "reverse");
+        execv(exeDir, args);
     }
 }
 
@@ -215,7 +228,7 @@ char** parse(char* input)
     int count_words = count+1;
     int required_space = count_words+1;
 
-    char response[required_space][MAX_PATH_LEN];
+    char response[required_space][MAX_PATH_ARG];
     int i_save = 0;
     int len = strlen(input);
     char acum[MAX_LEN] = "";
@@ -260,7 +273,7 @@ char** parse(char* input)
     char** parsed_response = malloc(count_words * sizeof(char*));
     for (int i = 0; i < count_words; i++)
     {
-        parsed_response[i] = malloc(MAX_PATH_LEN * sizeof(char));
+        parsed_response[i] = malloc(MAX_PATH_ARG * sizeof(char));
         strcpy(parsed_response[i], response[i]);
     }
     parsed_response[count_words] = NULL;
