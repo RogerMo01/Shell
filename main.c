@@ -17,7 +17,7 @@ char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
-void Executer(char** args, int cmd_i);
+void ExecuteCommand(char** args, int cmd_i);
 
 
 void run_shell() 
@@ -60,10 +60,6 @@ void run_shell()
             i++;
         }
 
-        printf("rdIn1_i = %i\n", rdIn1_i);
-        printf("rdOut1_i = %i\n", rdOut1_i);
-        printf("rdOut2_i = %i\n", rdOut2_i);
-        printf("pipe_i = %i\n", pipe_i);
 
         // Set current directory
         if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("Error: Cannot access to current dir\n"); 
@@ -85,31 +81,63 @@ void run_shell()
         }
         else
         {
-            
-            // Create process
-            __pid_t pid = fork();
-            if(pid == -1) perror("Error: Cannot fork the process\n");
+            __pid_t pid, pid1, pid2;
+            int pipe_fd[2];
+            pipe(pipe_fd);
 
-            if (pid == 0) //child process
-            { 
-                // Redirect Input Case
-                if(rdIn1_i > 0 && pipe_i == -1)
-                { RedirectInput(args, rdIn1_i); }
-
-                // Redirect Output Cases
-                if(rdOut1_i > 0)
-                { RedirectOutput(args, rdOut1_i); }
-
-
-                // Execute command
-                Executer(args, 0);
-                printf("Error: Comando no encontrado.\n");
-                exit(1);
-            } 
-            else //parent process
+            // Si no hay pipe
+            if(pipe_i == -1)
             {
-                wait(NULL);
+                // Create process
+                pid = fork();
+                if(pid == -1) perror("Error: Cannot fork the process\n");
+
+                if (pid == 0) //child process
+                { 
+                    // Redirect Input Case
+                    if(rdIn1_i > 0)
+                    { RedirectInput(args, rdIn1_i); }
+
+                    // Redirect Output Cases
+                    if(rdOut1_i > 0)
+                    { RedirectOutput(args, rdOut1_i); }
+
+                    // Execute command
+                    ExecuteCommand(args, 0);
+                    printf("Error: Comando no encontrado.\n");
+                    exit(EXIT_FAILURE);
+                } 
             }
+            else
+            {
+                pid1 = fork();
+                if(pid1 == 0)
+                {
+                    close(pipe_fd[0]);
+                    dup2(pipe_fd[1], STDOUT_FILENO);
+                    ExecuteCommand(args, 0);
+                    perror("Error: child process\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                pid2 = fork();
+                if(pid2 == 0)
+                {
+                    close(pipe_fd[1]);
+                    dup2(pipe_fd[0], STDIN_FILENO);
+
+                    ExecuteCommand(args, pipe_i + 1);
+                    perror("Error: child process 2\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            close(pipe_fd[0]);
+            close(pipe_fd[1]);
+            
+            waitpid(pid, NULL, 0);
+            waitpid(pid1, NULL, 0);
+            waitpid(pid2, NULL, 0);
         }
 
         
@@ -140,7 +168,7 @@ void RedirectOutput(char** args, int rdOut)
     close(out_fd);
 }
 
-void Executer(char** args, int cmd_i)
+void ExecuteCommand(char** args, int cmd_i)
 {
     if(strcmp(args[cmd_i], "pwd") == 0)
     {
@@ -153,6 +181,10 @@ void Executer(char** args, int cmd_i)
     else if(strcmp(args[cmd_i], "echo") == 0)
     {
         execv("./bin/echo", args);
+    }
+    else if(strcmp(args[cmd_i], "reverse") == 0)
+    {
+        execv("./bin/reverse", args);
     }
 }
 
