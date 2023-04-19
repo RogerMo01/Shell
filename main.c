@@ -17,6 +17,7 @@ char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
+void Executer(char** args);
 
 
 void run_shell() 
@@ -100,27 +101,10 @@ void run_shell()
                 { RedirectOutput(args, rdOut1_i); }
 
 
-
                 // Execute command
-                if(strcmp(args[0], "pwd") == 0)
-                {
-                    execvp("./bin/pwd", args);
-                }
-                else if(strcmp(args[0], "ls") == 0)
-                {
-                    execvp("./bin/ls", args);
-                }
-                else if(strcmp(args[0], "echo") == 0)
-                {
-                    printf("identific'o echo\n");
-                    execv("./bin/echo", args);
-                }
-                else
-                {
-                    printf("Error: Comando no encontrado.\n");
-                    exit(1);
-                }
-
+                Executer(args);
+                printf("Error: Comando no encontrado.\n");
+                exit(1);
             } 
             else //parent process
             {
@@ -154,6 +138,22 @@ void RedirectOutput(char** args, int rdOut)
     if(dup2o == -1) { perror("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
 
     close(out_fd);
+}
+
+void Executer(char** args)
+{
+    if(strcmp(args[0], "pwd") == 0)
+    {
+        execvp("./bin/pwd", args);
+    }
+    else if(strcmp(args[0], "ls") == 0)
+    {
+        execvp("./bin/ls", args);
+    }
+    else if(strcmp(args[0], "echo") == 0)
+    {
+        execv("./bin/echo", args);
+    }
 }
 
 
