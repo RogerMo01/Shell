@@ -38,6 +38,8 @@ void run_shell()
         fgets(input, MAX_LEN, stdin);
         args = parse(input);
 
+        if(args[0] == NULL) { printf("Error: Command not found.\n"); continue; }
+
         // In-Out redirectors positions
         int rdIn1_i = -1;
         int rdOut1_i = -1;
@@ -79,7 +81,7 @@ void run_shell()
             }
             else{
                 if(chdir(args[1]) != 0){
-                    perror("Error: Cannot change to this directory");
+                    printf("Error: Cannot change to this directory");
                 }
             }
         }
@@ -94,7 +96,7 @@ void run_shell()
             {
                 // Create process
                 pid = fork();
-                if(pid == -1) perror("Error: Cannot fork the process\n");
+                if(pid == -1) printf("Error: Cannot fork the process\n");
 
                 if (pid == 0) //child process
                 { 
@@ -108,8 +110,8 @@ void run_shell()
 
                     // Execute command
                     ExecuteCommand(args, 0, runningDir);
-                    printf("Error: Comando no encontrado.\n");
-                    exit(EXIT_FAILURE);
+                    printf("Error: Command not found.\n");
+                    continue;
                 } 
             }
             else
@@ -120,7 +122,7 @@ void run_shell()
                     close(pipe_fd[0]);
                     dup2(pipe_fd[1], STDOUT_FILENO);
                     ExecuteCommand(args, 0, runningDir);
-                    perror("Error: child process\n");
+                    printf("Error: child process\n");
                     exit(EXIT_FAILURE);
                 }
 
@@ -131,7 +133,7 @@ void run_shell()
                     dup2(pipe_fd[0], STDIN_FILENO);
 
                     ExecuteCommand(args, pipe_i + 1, runningDir);
-                    perror("Error: child process 2\n");
+                    printf("Error: child process 2\n");
                     exit(EXIT_FAILURE);
                 }
             }
@@ -153,10 +155,10 @@ void run_shell()
 void RedirectInput(char** args, int rdIn)
 {
     int in_fd = open(args[rdIn+1], O_RDONLY);
-    if(in_fd == -1) { perror("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
+    if(in_fd == -1) { printf("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
 
     int dup2i = dup2(in_fd, 0);
-    if(dup2i == -1) { perror("Error: Cannot change stdIn\n"); exit(EXIT_FAILURE); }
+    if(dup2i == -1) { printf("Error: Cannot change stdIn\n"); exit(EXIT_FAILURE); }
 
     close(in_fd);
 }
@@ -167,7 +169,7 @@ void RedirectOutput(char** args, int rdOut)
     int out_fd = (strcmp(args[rdOut], ">>") == 0) ? open(args[index], O_WRONLY | O_CREAT | O_APPEND, 0644) : open(args[index], O_WRONLY | O_CREAT | O_TRUNC, 0644);
     
     int dup2o = dup2(out_fd, 1);
-    if(dup2o == -1) { perror("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
+    if(dup2o == -1) { printf("Error: Cannot change stdOut\n"); exit(EXIT_FAILURE); }
 
     close(out_fd);
 }
