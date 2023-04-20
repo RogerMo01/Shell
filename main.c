@@ -19,7 +19,6 @@ char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
-// el último valor indica si la ejecución es en el primer hijo de un pipe (1-true, 0-false)
 void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
 
 char* flag;
@@ -240,11 +239,16 @@ char** parse(char* input)
     {
         if(i==0){last_space = true; continue;}
         if(i == (int)(strlen(input)-1) && last_space) count--;
+        if(input[i] == '#')
+        {
+            if(input[i-1] != ' ') count++;
+            count--;
+            break;
+        }
 
-        if(input[i] == ' '){
-            if (!last_space){
-                count++;
-            }
+        if(input[i] == ' ')
+        {
+            if (!last_space) count++;
             last_space = true;
 
             if(i>0 && input[i-1]=='\\' ) count--;
@@ -264,14 +268,9 @@ char** parse(char* input)
 
     for(int i=0; i < len -1; i++)
     {
-        // printf("i = %i\n", i);
-        // printf("input = %c\n", input[i]);
-        
         if(input[i] == '\\') continue;
-        if(i > 0 && input[i-1] == '\\')
-        {
-            includeSpace = true;
-        }
+        if(i > 0 && input[i-1] == '\\') includeSpace = true;
+
         if(input[i] == ' ' && !includeSpace)
         {
             if(!last_space)
@@ -282,7 +281,14 @@ char** parse(char* input)
             }
             last_space=true;
         }
-        else{
+        else
+        {
+            if(input[i] == '#')
+            {
+                if(!last_space) strcpy(response[i_save], acum);
+                break;
+            }
+
             char tmp[2] = "";
             tmp[0] = input[i];
             char* t = tmp;
@@ -290,10 +296,7 @@ char** parse(char* input)
             last_space = false;
             includeSpace = false;
 
-            if(i == len-2)
-            {
-                strcpy(response[i_save], acum);
-            }
+            if(i == len-2) strcpy(response[i_save], acum);
         }
     }
 
