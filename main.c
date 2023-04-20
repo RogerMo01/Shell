@@ -19,8 +19,12 @@ char** parse(char* input);
 void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
-void ExecuteCommand(char** args, int cmd_i, char* runningDir);
+// el último valor indica si la ejecución es en el primer hijo de un pipe (1-true, 0-false)
+void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
 
+char* flag;
+char y = 'y';
+char n = 'n';
 
 void run_shell() 
 {
@@ -91,7 +95,7 @@ void run_shell()
             int pipe_fd[2];
             pipe(pipe_fd);
 
-            // Si no hay pipe
+            // NO pipe case
             if(pipe_i == -1)
             {
                 // Create process
@@ -109,7 +113,8 @@ void run_shell()
                     { RedirectOutput(args, rdOut1_i); }
 
                     // Execute command
-                    ExecuteCommand(args, 0, runningDir);
+                    flag = &n;
+                    ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: Command not found.\n");
                     continue;
                 } 
@@ -119,9 +124,14 @@ void run_shell()
                 pid1 = fork();
                 if(pid1 == 0)
                 {
+                    if(rdIn1_i > 0)
+                    { RedirectInput(args, rdIn1_i); }
+
                     close(pipe_fd[0]);
                     dup2(pipe_fd[1], STDOUT_FILENO);
-                    ExecuteCommand(args, 0, runningDir);
+                    
+                    flag = &y;
+                    ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: child process\n");
                     exit(EXIT_FAILURE);
                 }
@@ -131,8 +141,12 @@ void run_shell()
                 {
                     close(pipe_fd[1]);
                     dup2(pipe_fd[0], STDIN_FILENO);
+                    
+                    if(rdOut2_i > 0)
+                    { RedirectOutput(args, rdOut2_i); }
 
-                    ExecuteCommand(args, pipe_i + 1, runningDir);
+                    flag = &n;
+                    ExecuteCommand(args, pipe_i + 1, runningDir, 1);
                     printf("Error: child process 2\n");
                     exit(EXIT_FAILURE);
                 }
@@ -144,8 +158,10 @@ void run_shell()
             waitpid(pid, NULL, 0);
             waitpid(pid1, NULL, 0);
             waitpid(pid2, NULL, 0);
-        }
 
+            // this is a patch for pipe cases
+            if(pipe_i > 0 && rdOut2_i == -1) printf("\n");
+        }
         
     }//while true
 }
@@ -154,7 +170,8 @@ void run_shell()
 
 void RedirectInput(char** args, int rdIn)
 {
-    int in_fd = open(args[rdIn+1], O_RDONLY);
+    int index = rdIn+1;
+    int in_fd = open(args[index], O_RDONLY);
     if(in_fd == -1) { printf("Error: Cannot open input file\n"); exit(EXIT_FAILURE); }
 
     int dup2i = dup2(in_fd, 0);
@@ -174,12 +191,20 @@ void RedirectOutput(char** args, int rdOut)
     close(out_fd);
 }
 
-void ExecuteCommand(char** args, int cmd_i, char* runningDir)
+void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
 {
     // Set executable path
     char exeDir[sizeof(runningDir)+5+MAX_EXE_NAME]; // 5 characters of "/bin/" and 15 of executable name
+    
     strcpy(exeDir, runningDir);
     strcat(exeDir, "/bin/");
+
+    char int_arg[5];
+    sprintf(int_arg, "%d", rdIn);
+
+    char char_arg[2];
+    sprintf(char_arg, "%c", *flag);
+
 
     if(strcmp(args[cmd_i], "pwd") == 0)
     {
@@ -194,12 +219,12 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir)
     else if(strcmp(args[cmd_i], "echo") == 0)
     {
         strcat(exeDir, "echo");
-        execv(exeDir, args);
+        execl(exeDir, args[cmd_i+1], int_arg, char_arg, NULL);
     }
     else if(strcmp(args[cmd_i], "reverse") == 0)
     {
         strcat(exeDir, "reverse");
-        execv(exeDir, args);
+        execl(exeDir, args[cmd_i+1], int_arg, char_arg, NULL);
     }
 }
 
@@ -301,7 +326,6 @@ void print_matrix(char** matrix, int len)
     }
     printf("~~~~ End ~~~~\n");
 }
-
 
 
 int main(void) {

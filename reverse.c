@@ -14,19 +14,26 @@ void reverse_string(char *str) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
+    // argv[0] = Text
+    // argv[1] = rdIn
+    // argv[2] = isPipe
+
     char str[56];
-    if(argv[1] == NULL)
+    if(strcmp(argv[1], "-1") != 0)
     {
         fgets(str, 56, stdin);
     }
     else
     {   
-        strcpy(str, argv[1]);
+        strcpy(str, argv[0]);
     }
 
     reverse_string(str);
-    printf("%s\n", str);
+
+    printf("%s", str);
+    if(strcmp(argv[2], "n") == 0) { printf("\n"); }
     
-    return 0;
+    return 1;
 }
