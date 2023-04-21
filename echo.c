@@ -27,6 +27,10 @@ int main(int argc, char *argv[])
         char str[64];
         fgets(str, 64, stdin);
 
+        // Remove \n
+        int pos = (int)strcspn(str, "\n");
+        if(pos < strlen(str)) str[pos] = '\0';
+
         printf("%s", str);
         if(strcmp(argv[2], "n") == 0) { printf("\n"); }
     }

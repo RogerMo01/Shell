@@ -30,6 +30,10 @@ int main(int argc, char *argv[])
         strcpy(str, argv[0]);
     }
 
+    // Remove \n
+    int pos = (int)strcspn(str, "\n");
+    if(pos < strlen(str)) str[pos] = '\0';
+
     reverse_string(str);
 
     printf("%s", str);
