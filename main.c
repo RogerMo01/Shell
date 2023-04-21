@@ -140,7 +140,7 @@ void run_shell()
                     flag = &n;
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: Command not found.\n");
-                    continue;
+                    exit(0);
                 } 
             }
             else
