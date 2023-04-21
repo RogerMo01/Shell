@@ -1,0 +1,4 @@
+history: history
+    Display the history list with line numbers, prefixing each entry
+    with a number. Will be displayed the last 10 commands to the
+    standard output.
