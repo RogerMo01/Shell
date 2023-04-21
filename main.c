@@ -22,6 +22,7 @@ void RedirectOutput(char** args, int rdOut1_i);
 void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
 void InitHistory();
 void AddToHistory(char in[MAX_LEN]);
+void GetAgainCMD(int i, char newInput[MAX_LEN]);
 
 char* flag;
 char y = 'y';
@@ -48,6 +49,20 @@ void run_shell()
         if(args[0] == NULL) { printf("Error: Command not found.\n"); continue; }
 
         // Command Validator
+        // explotar si input > MAX_LEN-1
+        
+
+        // Catch again command
+        if(strcmp(args[0], "again") == 0)
+        {
+            char newInput[sizeof(input)];
+            int i = (int)strtol(args[1], NULL, 10);
+            GetAgainCMD(i, newInput);
+
+            input[0] = '\0';
+            strcpy(input, newInput);
+            args = parse(input);
+        }
 
         // Save input
         AddToHistory(input);
@@ -254,6 +269,24 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
         strcat(exeDir, "history");
         execl(exeDir, historyDir, NULL);
     }
+}
+
+void GetAgainCMD(int i, char newInput[MAX_LEN])
+{
+    // Copy to newInput the new input that again command refers
+    FILE* file = fopen(historyDir, "r");
+    char line[100];
+    int counter = 1;
+    while (fgets(line, 100, file) != NULL)
+    {
+        if(counter == i)
+        {
+            strcpy(newInput, line);
+            break;
+        }
+        counter++;
+    }
+    fclose(file);
 }
 
 void InitHistory()
