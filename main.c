@@ -24,13 +24,10 @@ void InitHistory();
 void AddToHistory(char in[MAX_LEN]);
 void GetAgainCMD(int i, char newInput[MAX_LEN]);
 
-char* flag;
-char y = 'y';
-char n = 'n';
-
 // Running directory
 char runningDir[MAX_PATH_LEN];
 char historyDir[MAX_PATH_LEN];
+
 
 void run_shell() 
 {
@@ -137,7 +134,6 @@ void run_shell()
                     { RedirectOutput(args, rdOut1_i); }
 
                     // Execute command
-                    flag = &n;
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: Command not found.\n");
                     exit(0);
@@ -154,7 +150,6 @@ void run_shell()
                     close(pipe_fd[0]);
                     dup2(pipe_fd[1], STDOUT_FILENO);
                     
-                    flag = &y;
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: child process\n");
                     exit(EXIT_FAILURE);
@@ -169,7 +164,6 @@ void run_shell()
                     if(rdOut2_i > 0)
                     { RedirectOutput(args, rdOut2_i); }
 
-                    flag = &n;
                     ExecuteCommand(args, pipe_i + 1, runningDir, 1);
                     printf("Error: child process 2\n");
                     exit(EXIT_FAILURE);
@@ -182,9 +176,6 @@ void run_shell()
             waitpid(pid, NULL, 0);
             waitpid(pid1, NULL, 0);
             waitpid(pid2, NULL, 0);
-
-            // this is a patch for pipe cases
-            if(pipe_i > 0 && rdOut2_i == -1) printf("\n");
         }
         
     }//while true
@@ -225,9 +216,6 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     char rdIn_arg[5];
     sprintf(rdIn_arg, "%d", rdIn);
 
-    char flagPipe_arg[2];
-    sprintf(flagPipe_arg, "%c", *flag);
-
 
     if(strcmp(args[cmd_i], "help") == 0)
     {
@@ -239,7 +227,7 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
 
         char* help_arg = args[cmd_i+1];
 
-        execl(exeDir, txtDir, help_arg, rdIn_arg, flagPipe_arg, NULL);
+        execl(exeDir, txtDir, help_arg, rdIn_arg, NULL);
     }
 
     strcat(exeDir, "/bin/");
@@ -257,12 +245,12 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     else if(strcmp(args[cmd_i], "echo") == 0)
     {
         strcat(exeDir, "echo");
-        execl(exeDir, args[cmd_i+1], rdIn_arg, flagPipe_arg, NULL);
+        execl(exeDir, args[cmd_i+1], rdIn_arg, NULL);
     }
     else if(strcmp(args[cmd_i], "reverse") == 0)
     {
         strcat(exeDir, "reverse");
-        execl(exeDir, args[cmd_i+1], rdIn_arg, flagPipe_arg, NULL);
+        execl(exeDir, args[cmd_i+1], rdIn_arg, NULL);
     }
     else if(strcmp(args[cmd_i], "history") == 0)
     {
