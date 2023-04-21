@@ -1,0 +1,2 @@
+echo: echo [arg]
+    Write the argument to the standard output.

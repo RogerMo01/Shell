@@ -1,0 +1,3 @@
+ls: ls
+    Write the name of all directories and files to the standard
+    output.

@@ -12,7 +12,7 @@
 #define MAX_FILE_NAME_LEN 32
 #define MAX_PATH_ARG 56
 #define MAX_PATH_LEN 128
-#define MAX_EXE_NAME 15
+#define MAX_EXE_NAME 30
 
 // Predefined functions
 char** parse(char* input);
@@ -196,7 +196,6 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     char exeDir[sizeof(runningDir)+5+MAX_EXE_NAME]; // 5 characters of "/bin/" and 15 of executable name
     
     strcpy(exeDir, runningDir);
-    strcat(exeDir, "/bin/");
 
     char int_arg[5];
     sprintf(int_arg, "%d", rdIn);
@@ -204,6 +203,21 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     char char_arg[2];
     sprintf(char_arg, "%c", *flag);
 
+
+    if(strcmp(args[cmd_i], "help") == 0)
+    {
+        strcat(exeDir, "/bin/help");
+
+        char txtDir[sizeof(runningDir)+5+MAX_EXE_NAME];
+        strcpy(txtDir, runningDir);
+        strcat(txtDir, "/data/");
+
+        char* help_arg = args[cmd_i+1];
+
+        execl(exeDir, txtDir, help_arg, int_arg, char_arg, NULL);
+    }
+
+    strcat(exeDir, "/bin/");
 
     if(strcmp(args[cmd_i], "pwd") == 0)
     {
