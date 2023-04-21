@@ -18,7 +18,6 @@ int main(int argc, char *argv[])
 {
     // argv[0] = Text
     // argv[1] = rdIn
-    // argv[2] = isPipe
 
     char str[56];
     if(strcmp(argv[1], "-1") != 0)
@@ -30,10 +29,13 @@ int main(int argc, char *argv[])
         strcpy(str, argv[0]);
     }
 
+    // Remove \n
+    int pos = (int)strcspn(str, "\n");
+    if(pos < strlen(str)) str[pos] = '\0';
+
     reverse_string(str);
 
-    printf("%s", str);
-    if(strcmp(argv[2], "n") == 0) { printf("\n"); }
+    printf("%s\n", str);
     
     return 1;
 }

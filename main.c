@@ -20,10 +20,14 @@ void print_matrix(char** matrix, int len);
 void RedirectInput(char** args, int rdIn1_i);
 void RedirectOutput(char** args, int rdOut1_i);
 void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
+void InitHistory();
+void AddToHistory(char in[MAX_LEN]);
+void GetAgainCMD(int i, char newInput[MAX_LEN]);
 
-char* flag;
-char y = 'y';
-char n = 'n';
+// Running directory
+char runningDir[MAX_PATH_LEN];
+char historyDir[MAX_PATH_LEN];
+
 
 void run_shell() 
 {
@@ -31,9 +35,7 @@ void run_shell()
     int status;
     char** args;
     char currentPath[MAX_PATH_ARG];
-    char runningDir[128];
-    getcwd(runningDir, sizeof(runningDir));
-
+    
 
     while (true)
     {
@@ -42,6 +44,25 @@ void run_shell()
         args = parse(input);
 
         if(args[0] == NULL) { printf("Error: Command not found.\n"); continue; }
+
+        // Command Validator
+        // explotar si input > MAX_LEN-1
+        
+
+        // Catch again command
+        if(strcmp(args[0], "again") == 0)
+        {
+            char newInput[sizeof(input)];
+            int i = (int)strtol(args[1], NULL, 10);
+            GetAgainCMD(i, newInput);
+
+            input[0] = '\0';
+            strcpy(input, newInput);
+            args = parse(input);
+        }
+
+        // Save input
+        AddToHistory(input);
 
         // In-Out redirectors positions
         int rdIn1_i = -1;
@@ -75,6 +96,7 @@ void run_shell()
 
         if(strcmp(args[0], "exit") == 0)
         {
+            printf("logout\n");
             exit(0);
         }
         else if(strcmp(args[0], "cd") == 0)
@@ -112,10 +134,9 @@ void run_shell()
                     { RedirectOutput(args, rdOut1_i); }
 
                     // Execute command
-                    flag = &n;
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: Command not found.\n");
-                    continue;
+                    exit(0);
                 } 
             }
             else
@@ -129,7 +150,6 @@ void run_shell()
                     close(pipe_fd[0]);
                     dup2(pipe_fd[1], STDOUT_FILENO);
                     
-                    flag = &y;
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
                     printf("Error: child process\n");
                     exit(EXIT_FAILURE);
@@ -144,7 +164,6 @@ void run_shell()
                     if(rdOut2_i > 0)
                     { RedirectOutput(args, rdOut2_i); }
 
-                    flag = &n;
                     ExecuteCommand(args, pipe_i + 1, runningDir, 1);
                     printf("Error: child process 2\n");
                     exit(EXIT_FAILURE);
@@ -157,9 +176,6 @@ void run_shell()
             waitpid(pid, NULL, 0);
             waitpid(pid1, NULL, 0);
             waitpid(pid2, NULL, 0);
-
-            // this is a patch for pipe cases
-            if(pipe_i > 0 && rdOut2_i == -1) printf("\n");
         }
         
     }//while true
@@ -197,11 +213,8 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     
     strcpy(exeDir, runningDir);
 
-    char int_arg[5];
-    sprintf(int_arg, "%d", rdIn);
-
-    char char_arg[2];
-    sprintf(char_arg, "%c", *flag);
+    char rdIn_arg[5];
+    sprintf(rdIn_arg, "%d", rdIn);
 
 
     if(strcmp(args[cmd_i], "help") == 0)
@@ -214,7 +227,7 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
 
         char* help_arg = args[cmd_i+1];
 
-        execl(exeDir, txtDir, help_arg, int_arg, char_arg, NULL);
+        execl(exeDir, txtDir, help_arg, rdIn_arg, NULL);
     }
 
     strcat(exeDir, "/bin/");
@@ -232,16 +245,99 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn)
     else if(strcmp(args[cmd_i], "echo") == 0)
     {
         strcat(exeDir, "echo");
-        execl(exeDir, args[cmd_i+1], int_arg, char_arg, NULL);
+        execl(exeDir, args[cmd_i+1], rdIn_arg, NULL);
     }
     else if(strcmp(args[cmd_i], "reverse") == 0)
     {
         strcat(exeDir, "reverse");
-        execl(exeDir, args[cmd_i+1], int_arg, char_arg, NULL);
+        execl(exeDir, args[cmd_i+1], rdIn_arg, NULL);
+    }
+    else if(strcmp(args[cmd_i], "history") == 0)
+    {
+        strcat(exeDir, "history");
+        execl(exeDir, historyDir, NULL);
     }
 }
 
+void GetAgainCMD(int i, char newInput[MAX_LEN])
+{
+    // Copy to newInput the new input that again command refers
+    FILE* file = fopen(historyDir, "r");
+    char line[100];
+    int counter = 1;
+    while (fgets(line, 100, file) != NULL)
+    {
+        if(counter == i)
+        {
+            strcpy(newInput, line);
+            break;
+        }
+        counter++;
+    }
+    fclose(file);
+}
 
+void InitHistory()
+{
+    strcpy(historyDir, runningDir);
+    strcat(historyDir, "/data/history.txt");
+    int history_fd = open(historyDir, O_CREAT, 0644);
+    close(history_fd);
+}
+
+void AddToHistory(char in[MAX_LEN])
+{
+    if(in[0] == ' ') return;
+
+    FILE* file = fopen(historyDir, "r");
+
+    char line[100];
+
+    // Count lines
+    int lineCounter = 0;
+    while (fgets(line, 100, file) != NULL) lineCounter++;
+    fclose(file);
+
+    if(lineCounter == 10)
+    {
+        char tempDir[MAX_PATH_LEN];
+        strcpy(tempDir, runningDir);
+        strcat(tempDir, "/data/temp.txt");
+
+        // copy history > temp
+        FILE* temp = fopen(tempDir, "a");
+        file = fopen(historyDir, "r");
+        bool first = true;
+        while (fgets(line, 100, file) != NULL)
+        {
+            if(first) {first = false; continue;}
+            fprintf(temp, "%s", line);
+        }
+        fclose(temp);
+        fclose(file);
+
+        // reset history
+        file = fopen(historyDir, "w");
+        fclose(file);
+
+        // copy temp > history
+        temp = fopen(tempDir, "r");
+        file = fopen(historyDir, "a");
+        while (fgets(line, 100, temp) != NULL)
+        {
+            fprintf(file, "%s", line);
+        }
+        fclose(temp);
+        fclose(file);
+
+        remove(tempDir);
+    }
+    
+
+    file = fopen(historyDir, "a");
+    fprintf(file, "%s", in);
+    fclose(file);
+}
 
 char** parse(char* input)
 {
@@ -326,7 +422,6 @@ char** parse(char* input)
     return parsed_response;
 }
 
-
 void print_matrix(char** matrix, int len)
 {
     printf("~~~ Matrix: ~~~\n");
@@ -346,6 +441,10 @@ void print_matrix(char** matrix, int len)
 
 
 int main(void) {
+
+    getcwd(runningDir, sizeof(runningDir));
+    InitHistory();
+
     run_shell();
     return 0;
 }

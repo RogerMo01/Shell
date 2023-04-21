@@ -3,9 +3,11 @@ Type `help name' to find out more about the function `name'.
 
 A star (*) next to an arg []* means that the argument is necessary.
 
+again [arg]*
 cd [dir]*
 echo [arg]
 exit
 help
+history
 ls
 reverse [arg]

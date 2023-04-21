@@ -1,0 +1,5 @@
+again: again [arg]
+    Execute the command prefixed with the number 'arg' in the history
+    list to standard output.
+
+    More about 'history': help history
