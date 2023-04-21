@@ -23,6 +23,7 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
 void InitHistory();
 void AddToHistory(char in[MAX_LEN]);
 void GetAgainCMD(int i, char newInput[MAX_LEN]);
+void ValidateCommand(char** in);
 
 // Running directory
 char runningDir[MAX_PATH_LEN];
@@ -46,8 +47,7 @@ void run_shell()
         if(args[0] == NULL) { printf("Error: Command not found.\n"); continue; }
 
         // Command Validator
-        // explotar si input > MAX_LEN-1
-        
+        ValidateCommand(args);        
 
         // Catch again command
         if(strcmp(args[0], "again") == 0)
@@ -182,6 +182,11 @@ void run_shell()
 }
 
 
+void ValidateCommand(char** in)
+{
+    // explotar si input > MAX_LEN-1
+    
+}
 
 void RedirectInput(char** args, int rdIn)
 {

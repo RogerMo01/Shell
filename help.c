@@ -2,6 +2,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+bool isOperator(char* arg);
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +16,7 @@ int main(int argc, char *argv[])
     
     FILE* file;
 
-    if(argv[1] == NULL)
+    if(arg == NULL || isOperator(arg))
     {
         strcat(txtDir, ".txt");
     }
@@ -48,4 +51,9 @@ int main(int argc, char *argv[])
     }
 
     return 1;
+}
+
+bool isOperator(char* arg)
+{
+    if(strcmp(arg, ">") == 0 || strcmp(arg, ">>") == 0 || strcmp(arg, "<") == 0 || strcmp(arg, "|") == 0) return true; else return false;
 }
