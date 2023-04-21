@@ -1,0 +1,3 @@
+reverse: reverse [arg]
+    Write the reverse of the string corresponding to the argument
+    to the standard output.
