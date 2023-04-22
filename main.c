@@ -23,6 +23,9 @@ void ExecuteCommand(char** args, int cmd_i, char* runningDir, int rdIn);
 void InitHistory();
 void AddToHistory(char in[MAX_LEN]);
 void GetAgainCMD(int i, char newInput[MAX_LEN]);
+bool ValidateCommand(char* in, char** parsedIn);
+bool AssertCmd(int start, int end, char** pIn, int rdIn, int rdOut, bool isPipe, bool isFirst);
+
 
 // Running directory
 char runningDir[MAX_PATH_LEN];
@@ -43,11 +46,10 @@ void run_shell()
         fgets(input, MAX_LEN, stdin);
         args = parse(input);
 
-        if(args[0] == NULL) { printf("Error: Command not found.\n"); continue; }
+        if(args[0] == NULL) { fprintf(stderr, "Error: Command not found.\n"); continue; }
 
         // Command Validator
-        // explotar si input > MAX_LEN-1
-        
+        if(!ValidateCommand(input, args)) continue;;
 
         // Catch again command
         if(strcmp(args[0], "again") == 0)
@@ -92,7 +94,7 @@ void run_shell()
 
 
         // Set current directory
-        if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("Error: Cannot access to current dir\n"); 
+        if(getcwd(currentPath, sizeof(currentPath)) == NULL) fprintf(stderr, "Error: cannot access to current dir\n"); 
 
         if(strcmp(args[0], "exit") == 0)
         {
@@ -101,13 +103,8 @@ void run_shell()
         }
         else if(strcmp(args[0], "cd") == 0)
         {
-            if(args[1] == NULL){
-                printf("Error: You must provide a directory to change to.\n");
-            }
-            else{
-                if(chdir(args[1]) != 0){
-                    printf("Error: Cannot change to this directory");
-                }
+            if(chdir(args[1]) != 0){
+                fprintf(stderr, "Error: cannot change to this directory\n");
             }
         }
         else
@@ -121,7 +118,7 @@ void run_shell()
             {
                 // Create process
                 pid = fork();
-                if(pid == -1) printf("Error: Cannot fork the process\n");
+                if(pid == -1) fprintf(stderr, "Error: cannot fork the process\n");
 
                 if (pid == 0) //child process
                 { 
@@ -135,8 +132,6 @@ void run_shell()
 
                     // Execute command
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
-                    printf("Error: Command not found.\n");
-                    exit(0);
                 } 
             }
             else
@@ -151,7 +146,7 @@ void run_shell()
                     dup2(pipe_fd[1], STDOUT_FILENO);
                     
                     ExecuteCommand(args, 0, runningDir, rdIn1_i);
-                    printf("Error: child process\n");
+                    fprintf(stderr, "Error: child process\n");
                     exit(EXIT_FAILURE);
                 }
 
@@ -165,7 +160,7 @@ void run_shell()
                     { RedirectOutput(args, rdOut2_i); }
 
                     ExecuteCommand(args, pipe_i + 1, runningDir, 1);
-                    printf("Error: child process 2\n");
+                    fprintf(stderr, "Error: child process 2\n");
                     exit(EXIT_FAILURE);
                 }
             }
@@ -181,6 +176,140 @@ void run_shell()
     }//while true
 }
 
+
+bool ValidateCommand(char* in, char** pIn)
+{
+    if(strlen(in) > MAX_LEN-2) { fprintf(stderr, "Error: the input len has exceeded supported len.\n"); exit(0); }
+
+    int pipe = -1;
+    int rdIn = -1;
+    int rdOut = -1;
+    int rdIn2 = -1;
+    int rdOut2 = -1;
+
+    int i = 0;
+    while (pIn[i] != NULL)
+    {
+        if(strcmp(pIn[i], "|") == 0)
+        {
+            if(pipe != -1) { fprintf(stderr, "Error: no multipipe allowed.\n"); return false; }
+            pipe = i;
+        }
+        if(pipe == -1)
+        {
+            if(strcmp(pIn[i], "<") == 0) rdIn =  i;
+            if(strcmp(pIn[i], ">") == 0 || strcmp(pIn[i], ">>") == 0) rdOut = i;
+        }
+        else
+        { 
+            if(strcmp(pIn[i], "<") == 0) rdIn2 =  i;
+            if(strcmp(pIn[i], ">") == 0 || strcmp(pIn[i], ">>") == 0) rdOut2 = i;
+        }
+        i++;
+    }
+    // printf("pipe = %i\n", pipe);
+    // printf("rdIn = %i\n", rdIn);
+    // printf("rdOut = %i\n", rdOut);
+    // printf("rdOut2 = %i\n", rdOut2);
+
+    if(pipe != -1)
+    {
+        if(!AssertCmd(0, pipe+1, pIn, rdIn, rdOut, true, true)) return false;
+        if(!AssertCmd(pipe+1, i, pIn, rdIn2, rdOut2, true, false)) return false;
+    }
+    else
+    {
+        if(!AssertCmd(0, i, pIn, rdIn, rdOut, false, false)) return false;
+    }
+
+    return true;
+}
+
+bool AssertCmd(int start, int end, char** pIn, int rdIn, int rdOut, bool isPipe, bool isFirstPipe)
+{
+    // printf("assert cmd\n");
+    // printf("pIn[start] = %s\n", pIn[start]);
+    // printf("start = %i\n", start);
+    // printf("end = %i\n", end);
+
+    int i = start;
+
+    if(isPipe)
+    {
+        if(isFirstPipe)
+        {
+            if(rdOut != -1) { fprintf(stderr, "Error: first pipe command cannot have '>' or '>>'.\n"); return false; }
+        }
+        else
+        {
+            if(rdIn != -1) { fprintf(stderr, "Error: second pipe command cannot have '<'.\n"); return false; }
+        }
+    }
+
+    int len = end - start;
+    
+    if(strcmp(pIn[start], "again") == 0)
+    {
+        if(len == 1) { fprintf(stderr, "Error: you must provide a number argument in the range 1-10.\n"); return false; }
+        int n = (int)strtol(pIn[start+1], NULL, 10);
+        if(n > 10 || n < 1) { fprintf(stderr, "Error: argument must be a number in the range 1-10.\n"); return false; }
+        if(len > 2 && strcmp(pIn[start+2], "<") == 0) { fprintf(stderr, "Error: cannot change stdin for again command.\n"); return false; }
+    }
+    else if(strcmp(pIn[start], "cd") == 0)
+    {
+        if(len == 1) { fprintf(stderr, "Error: you must provide a directory to change to.\n"); return false; }
+        if(len > 2) { fprintf(stderr, "Error: too many arguments.\n"); return false; }
+    }
+    else if(strcmp(pIn[start], "exit") == 0)
+    {
+        
+    }
+    else if(strcmp(pIn[start], "pwd") == 0)
+    {
+        if(len > 1 && strcmp(pIn[start+1], "<") == 0) { fprintf(stderr, "Error: cannot change stdin for pwd command.\n"); return false; }
+    }
+    else if(strcmp(pIn[start], "ls") == 0)
+    {
+        if(len > 1 && (strcmp(pIn[start+1], ">") != 0 && strcmp(pIn[start+1], ">>") != 0)) { fprintf(stderr, "Error: this command takes no arguments.\n"); return false; }
+        if(len > 1 && strcmp(pIn[start+1], "<") == 0) { fprintf(stderr, "Error: cannot change stdin for pwd command.\n"); return false; }
+    }
+    else if(strcmp(pIn[start], "echo") == 0)
+    {
+        
+    }
+    else if(strcmp(pIn[start], "reverse") == 0)
+    {
+        
+    }
+    else if(strcmp(pIn[start], "history") == 0)
+    {
+        if(len > 1 && (strcmp(pIn[start+1], ">") != 0 || strcmp(pIn[start+1], ">>") != 0)) { fprintf(stderr, "Error: this command take no arguments.\n"); return false; }
+        if(len > 1 && strcmp(pIn[start+1], "<") == 0) { fprintf(stderr, "Error: cannot change stdin for history command.\n"); return false; }
+    }
+    else if(strcmp(pIn[start], "help") == 0)
+    {   
+        if(len == 3 && strcmp(pIn[start+1], ">") != 0 && strcmp(pIn[start+1], ">>") != 0) { fprintf(stderr, "Error: invalid syntax command\n"); return false; }
+        if(len != 1 && len !=2 && (strcmp(pIn[start+1], "<") == 0 || strcmp(pIn[start+2], "<") == 0)) { fprintf(stderr, "Error: cannot change stdin for help command.\n"); return false; }
+        if((len == 4 && strcmp(pIn[start+2], ">") != 0 && strcmp(pIn[start+2], ">>")) || len > 4) { fprintf(stderr, "Error: invalid syntax command\n"); return false; }
+        if(len == 2 || len == 4)
+        {
+            char* topics[] = {"again", "cd", "echo", "exit", "history", "ls", "reverse", "pwd"};
+            bool exist = false;
+            for (int i = 0; i < 8; i++)
+            {
+                if(strcmp(topics[i], pIn[start+1]) == 0) { exist = true; break; }
+            }
+            if(!exist) { fprintf(stderr, "Error: no help topics match %s.\n", pIn[start+1]); return false; }
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Error: command not found.\n");
+        return false;
+    }
+    
+    return true;
+}
 
 
 void RedirectInput(char** args, int rdIn)
@@ -418,7 +547,6 @@ char** parse(char* input)
     }
     parsed_response[count_words] = NULL;
 
-    // print_matrix(parsed_response, required_space);
     return parsed_response;
 }
 

@@ -1,0 +1,2 @@
+pwd: pwd
+    Display the current working directory to standard output.
