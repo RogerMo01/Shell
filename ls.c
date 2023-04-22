@@ -22,12 +22,12 @@ void ls()
     char currentPath[56];
     
     // Set current directory
-    if(getcwd(currentPath, sizeof(currentPath)) == NULL) perror("error: Cannot access to current dir\n"); 
+    if(getcwd(currentPath, sizeof(currentPath)) == NULL) { fprintf(stderr, "Error: cannot access to current dir\n"); return; }
 
 
     d = opendir(currentPath);
 
-    if(d == NULL) printf("error: Cannot open directory '%s'\n", currentPath);
+    if(d == NULL) { fprintf(stderr, "Error: cannot open directory '%s'\n", currentPath); return; }
 
     // Gets the max len of files names
     int largest = 0;

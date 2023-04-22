@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     
     FILE* file;
 
-    if(arg == NULL || isOperator(arg))
+    if(arg == NULL || strcmp(arg, "") == 0 || strcmp(arg, " ") == 0 || isOperator(arg))
     {
         strcat(txtDir, ".txt");
     }
@@ -28,11 +28,6 @@ int main(int argc, char *argv[])
     }
 
     file = fopen(txtDir, "rb");
-    if(file == NULL)
-    {
-        printf("Error: no help topics match %s.\n", arg);
-        return 1;
-    }
 
     fseek(file, 0, SEEK_END);
     long size = ftell(file);

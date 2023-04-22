@@ -10,4 +10,5 @@ exit
 help
 history
 ls
+pwd
 reverse [arg]
