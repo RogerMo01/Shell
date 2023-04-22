@@ -46,7 +46,7 @@ void run_shell()
         fgets(input, MAX_LEN, stdin);
         args = parse(input);
 
-        if(args[0] == NULL) { fprintf(stderr, "Error: Command not found.\n"); exit(0); }
+        if(args[0] == NULL) { fprintf(stderr, "Error: Command not found.\n"); continue; }
 
         // Command Validator
         if(!ValidateCommand(input, args)) continue;;
@@ -215,6 +215,7 @@ bool ValidateCommand(char* in, char** pIn)
     if(pipe != -1)
     {
         if(!AssertCmd(0, pipe+1, pIn, rdIn, rdOut, true, true)) return false;
+        if(!AssertCmd(pipe+1, i, pIn, rdIn2, rdOut2, true, false)) return false;
     }
     else
     {
